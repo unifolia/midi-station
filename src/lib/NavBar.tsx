@@ -1,6 +1,3 @@
-/* eslint-disable no-unused-vars */
-import React from "react";
-
 import {
   NavBar,
   NavButton,
@@ -13,7 +10,7 @@ import {
 import { Label } from "../styles/GlobalStyles";
 
 interface NavigationProps {
-  handleAddInput: () => void;
+  handleAddCCInput: () => void;
   savePreset: () => void;
   handleLoadPreset: (event: React.ChangeEvent<HTMLInputElement>) => void;
   globalMidiChannel: number | null;
@@ -21,7 +18,7 @@ interface NavigationProps {
 }
 
 const Navigation = ({
-  handleAddInput,
+  handleAddCCInput,
   savePreset,
   handleLoadPreset,
   globalMidiChannel,
@@ -29,7 +26,7 @@ const Navigation = ({
 }: NavigationProps) => {
   return (
     <NavBar>
-      <NavButton onClick={handleAddInput}>Add Input</NavButton>
+      <NavButton onClick={handleAddCCInput}>Add Input</NavButton>
       <NavButton onClick={savePreset}>Save Preset</NavButton>
       <LoadButton>
         Upload Preset
@@ -48,11 +45,13 @@ const Navigation = ({
         </GlobalChannelLabel>
         <GlobalChannelSelect
           id="global-select"
-          value={globalMidiChannel || ""}
-          onChange={(e) =>
-            handleGlobalMidiChannelChange(Number(e.target.value))
-          }
+          value={globalMidiChannel ?? ""}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val) handleGlobalMidiChannelChange(Number(val));
+          }}
         >
+          <option value="">—</option>
           {Array.from({ length: 16 }, (_, i) => i + 1).map((channel) => (
             <option key={channel} value={channel}>
               {channel}

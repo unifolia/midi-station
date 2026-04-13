@@ -8,14 +8,14 @@ export const GlobalStyles = createGlobalStyle`
     color-scheme: dark;
     color: ${theme.colors.textPrimary};
 
-    --primary-glow: ${theme.colors.primaryGlow};
-    --secondary-glow: ${theme.colors.secondaryGlow};
-    --accent-glow: ${theme.colors.accentGlow};
+    --primary: ${theme.colors.primary};
+    --primary-light: ${theme.colors.primaryLight};
+    --primary-muted: ${theme.colors.primaryMuted};
     --surface-glass: ${theme.colors.surfaceGlass};
     --surface-glass-border: ${theme.colors.surfaceGlassBorder};
     --text-primary: ${theme.colors.textPrimary};
     --text-secondary: ${theme.colors.textSecondary};
-    --text-glow: ${theme.colors.textGlow};
+    --danger: ${theme.colors.danger};
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -24,7 +24,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
-    background: #031e22a1;
+    background: ${theme.colors.background};
     margin: 0;
     display: flex;
     place-items: center;
@@ -32,80 +32,31 @@ export const GlobalStyles = createGlobalStyle`
     min-height: 100vh;
     font-family: ${theme.fonts.family};
     overflow-x: hidden;
-
-    &::before {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: radial-gradient(
-          circle at 20% 30%,
-          rgba(0, 245, 255, 0.15) 0%,
-          transparent 40%
-        ),
-        radial-gradient(
-          circle at 80% 70%,
-          rgba(255, 0, 255, 0.1) 0%,
-          transparent 40%
-        ),
-        radial-gradient(
-          circle at 40% 80%,
-          rgba(0, 255, 136, 0.08) 0%,
-          transparent 40%
-        );
-      pointer-events: none;
-      z-index: -1;
-    }
   }
 
   #app {
     max-width: 1280px;
     box-sizing: border-box;
     width: 100%;
+    min-height: 100vh;
     margin: 0 auto;
     padding: ${theme.spacing.xl};
     text-align: center;
+    display: flex;
+    flex-direction: column;
     @media (min-width: ${theme.breakpoints.big}) {
       max-width: 1400px;
     }
   }
-`;
 
-export const StyledLink = styled.a`
-  font-weight: 400;
-  color: var(--primary-glow);
-  text-decoration: none;
-  text-transform: lowercase;
-  position: relative;
-  padding: 2px ${theme.spacing.xs};
-  border-radius: ${theme.borderRadius.sm};
-  transition: ${theme.transitions.default};
-
-  &::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      var(--primary-glow),
-      var(--secondary-glow)
-    );
-    transition: width 0.3s ease;
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
-  &:hover::before {
-    width: 100%;
-  }
-
-  &:hover {
-    color: var(--text-primary);
-    text-shadow: 0 0 10px var(--primary-glow);
-    background: rgba(0, 245, 255, 0.1);
+  footer {
+    margin-top: auto;
   }
 `;
 
@@ -124,19 +75,6 @@ export const Title = styled.h1`
   margin: 0 0 ${theme.spacing.xl} 0;
 `;
 
-export const FormTitle = styled.h2`
-  font-size: ${theme.fonts.sizes.h2};
-`;
-
-export const Card = styled.div`
-  padding: ${theme.spacing.xl};
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--surface-glass-border);
-  border-radius: ${theme.borderRadius.xl};
-  box-shadow: ${theme.shadows.glass};
-`;
-
 export const BaseButton = styled.button`
   border-radius: ${theme.borderRadius.md};
   border: 1px solid var(--surface-glass-border);
@@ -144,8 +82,7 @@ export const BaseButton = styled.button`
   font-size: ${theme.fonts.sizes.body};
   font-weight: ${theme.fonts.weights.normal};
   font-family: inherit;
-  background: ${theme.gradients.primaryButton};
-  color: #000000;
+  color: var(--text-primary);
   cursor: pointer;
   transition: ${theme.transitions.default};
   text-transform: lowercase;
@@ -153,16 +90,13 @@ export const BaseButton = styled.button`
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
-  outline: 4px solid #24242480;
-  outline-offset: -2px;
-  background: white;
+  background: ${theme.colors.surfaceInput};
 
   &:hover {
-    outline: 4px solid #8e8e8e78;
-    background: ${theme.gradients.hoverButton};
-    transform: translateY(-2px);
+    border-color: var(--primary);
+    background: ${theme.colors.primaryAlpha8};
     box-shadow: ${theme.shadows.button};
-    color: #000000;
+    color: var(--text-primary);
   }
 `;
 

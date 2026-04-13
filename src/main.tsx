@@ -1,6 +1,5 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { GlobalStyles } from "./styles/GlobalStyles";
 
@@ -19,11 +18,9 @@ console.log(
 
 console.log("Questions? Concerns? Chit-chat? Email me at james@jameslewis.io");
 
-ReactDOM.createRoot(document.getElementById("app")!).render(
-  <React.StrictMode>
-    <BrowserRouter basename="/messenger">
-      <GlobalStyles />
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>
+createRoot(document.getElementById("app")!).render(
+  <StrictMode>
+    <GlobalStyles />
+    <App />
+  </StrictMode>
 );

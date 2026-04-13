@@ -1,7 +1,5 @@
-/* eslint-disable no-unused-vars */
 import { useState } from "react";
 import labelHandler from "../util/labelHandler";
-import { Title } from "../styles/GlobalStyles";
 import {
   FormClickable,
   FormTitleDisplay,
@@ -14,7 +12,7 @@ interface HeaderProps {
 }
 
 const Header = ({ name, setName }: HeaderProps) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
   const {
     handleLabelClick,
     handleLabelChange,
@@ -23,14 +21,13 @@ const Header = ({ name, setName }: HeaderProps) => {
   } = labelHandler;
 
   return (
-    <>
-      <Title>Messenger</Title>
-      <FormClickable>
+    <FormClickable>
         {isEditing ? (
           <FormTitleInput
             id="presetName"
             type="text"
             value={name}
+            aria-label="Preset name"
             onChange={(e) => handleLabelChange(setName, e)}
             onBlur={() => handleLabelBlur(setIsEditing, name, setName)}
             onKeyDown={(e) => handleLabelKeyDown(setIsEditing, e)}
@@ -41,13 +38,21 @@ const Header = ({ name, setName }: HeaderProps) => {
           <FormTitleDisplay
             as="h2"
             className="header"
+            role="button"
+            tabIndex={0}
             onClick={() => handleLabelClick(setIsEditing)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleLabelClick(setIsEditing);
+              }
+            }}
+            aria-label={`${name} — click to rename`}
           >
             {name}
           </FormTitleDisplay>
         )}
-      </FormClickable>
-    </>
+    </FormClickable>
   );
 };
 

@@ -1,32 +1,28 @@
 import { GlobalChannelSelect } from "../styles/components";
-import { Label } from "../styles/GlobalStyles";
 
 interface DeviceProps {
   device: string;
   deviceList: string[];
-  setDevice: (manufacturer: string) => void;
+  setDevice: (deviceName: string) => void;
 }
 
 const Device = ({ device, deviceList, setDevice }: DeviceProps) => {
   return (
-    <div>
-      <h3>
-        MIDI Device:
-        <Label htmlFor="midi-device">Select MIDI Device</Label>
-        <GlobalChannelSelect
-          id="midi-device"
-          value={device}
-          onChange={(e) => setDevice(e.target.value)}
-          style={{ margin: "0px 0px 8px 8px" }}
-        >
-          <option value="">Select Device...</option>
-          {deviceList.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </GlobalChannelSelect>
-      </h3>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+      <h3 id="device-heading" style={{ margin: 0 }}>MIDI Device:</h3>
+      <GlobalChannelSelect
+        id="midi-device"
+        aria-labelledby="device-heading"
+        value={device}
+        onChange={(e) => setDevice(e.target.value)}
+      >
+        <option value="">Select Device...</option>
+        {deviceList.map((d) => (
+          <option key={d} value={d}>
+            {d}
+          </option>
+        ))}
+      </GlobalChannelSelect>
     </div>
   );
 };

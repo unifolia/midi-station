@@ -1,5 +1,5 @@
-/* eslint-disable no-unused-vars */
-import React from "react";
+import type React from "react";
+
 const labelHandler = {
   handleLabelClick: function (setIsEditing: (editing: boolean) => void): void {
     setIsEditing(true);
@@ -21,6 +21,7 @@ const labelHandler = {
       setIsEditing(false);
     } else {
       setName("Untitled");
+      setIsEditing(false);
     }
   },
 

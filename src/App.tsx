@@ -1,23 +1,19 @@
-/* eslint-disable no-undef */
-import { useState, useEffect, useCallback, useRef } from "react";
-import MidiForm from "./lib/MidiForm";
+import { useState, useCallback, useRef } from "react";
+import MidiCCForm from "./lib/MidiCCForm";
+import MidiPCForm from "./lib/MidiPCForm";
 import Header from "./lib/Header";
 import { FormsContainer } from "./styles/components";
+import { Title } from "./styles/GlobalStyles";
 import Navigation from "./lib/NavBar";
 import Device from "./lib/Device";
+import useMIDI from "./hooks/useMIDI";
+import type { MidiCCFormData } from "./types";
 
-interface MidiFormData {
-  id: number;
-  midiChannel: number;
-  midiCC: number;
-  value: number;
-  label: string;
-  backgroundColor: string;
-}
+const DEFAULT_BG = "#909090";
 
 const App = () => {
   const [forms, setForms] = useState({
-    name: "MIDI Control Block Group",
+    name: "Untitled Preset",
     inputs: [
       {
         id: 1,
@@ -25,29 +21,35 @@ const App = () => {
         midiCC: 1,
         value: 64,
         label: "MIDI Control Block",
-        backgroundColor: "#1a1a2e",
+        backgroundColor: DEFAULT_BG,
       },
     ],
   });
-  const [nextId, setNextId] = useState(2);
+  const nextIdRef = useRef(2);
   const [globalMidiChannel, setGlobalMidiChannel] = useState<number | null>(
     null
   );
 
-  const [isMidiOutput, setIsMidiOutput] = useState(false);
-  const [device, setDevice] = useState("");
-  const [deviceList, setDeviceList] = useState<string[]>([]);
-  const formsRef = useRef(forms);
-  const deviceRef = useRef(device);
+  const [pcForm, setPcForm] = useState({
+    midiChannel: 1,
+    program: 0,
+    label: "Program Change",
+    backgroundColor: DEFAULT_BG,
+  });
 
-  // Update the refs whenever forms or device changes
-  useEffect(() => {
-    formsRef.current = forms;
-  }, [forms]);
+  const onCC = useCallback((channel: number, cc: number, value: number) => {
+    setForms((prev) => ({
+      ...prev,
+      inputs: prev.inputs.map((form) =>
+        form.midiChannel === channel && form.midiCC === cc
+          ? { ...form, value }
+          : form
+      ),
+    }));
+  }, []);
 
-  useEffect(() => {
-    deviceRef.current = device;
-  }, [device]);
+  const { deviceList, device, setDevice, isMidiOutput, sendCC, sendPC } =
+    useMIDI({ onCC });
 
   const handleGlobalMidiChannelChange = (newGlobalChannel: number) => {
     setGlobalMidiChannel(newGlobalChannel);
@@ -59,70 +61,79 @@ const App = () => {
           midiChannel: newGlobalChannel,
         })),
       }));
+      setPcForm((prev) => ({ ...prev, midiChannel: newGlobalChannel }));
     }
   };
 
-  const handleAddInput = () => {
+  const handleAddCCInput = () => {
     if (forms.inputs.length < 50) {
+      const id = nextIdRef.current++;
+      const lastColor =
+        forms.inputs[forms.inputs.length - 1]?.backgroundColor || DEFAULT_BG;
       setForms((prev) => ({
         ...prev,
         inputs: [
           ...prev.inputs,
           {
-            id: nextId,
+            id,
             midiChannel: globalMidiChannel || 1,
             midiCC: 1,
             value: 64,
             label: "MIDI Control Block",
-            backgroundColor: "#1a1a2e",
+            backgroundColor: lastColor,
           },
         ],
       }));
-      setNextId((prev) => prev + 1);
     }
   };
 
-  const handleRemoveForm = (id: number) => {
+  const handleRemoveCCForm = useCallback((id: number) => {
     setForms((prev) => ({
       ...prev,
       inputs: prev.inputs.filter((form) => form.id !== id),
     }));
-  };
+  }, []);
 
-  const updateFormField = (
-    id: number,
-    field: keyof MidiFormData,
-    value: string | number
-  ) => {
-    setForms((prev) => ({
-      ...prev,
-      inputs: prev.inputs.map((form) =>
-        form.id === id ? { ...form, [field]: value } : form
-      ),
-    }));
-  };
+  const updateCCFormField = useCallback(
+    (id: number, field: keyof MidiCCFormData, value: string | number) => {
+      setForms((prev) => ({
+        ...prev,
+        inputs: prev.inputs.map((form) =>
+          form.id === id ? { ...form, [field]: value } : form
+        ),
+      }));
+    },
+    []
+  );
 
   const savePreset = async () => {
     const preset = {
       name: forms.name,
       timestamp: new Date().toISOString(),
       forms: forms.inputs,
+      pcForm,
+      globalMidiChannel,
     };
 
     const dataStr = JSON.stringify(preset, null, 2);
     const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
     const suggestedName = `${preset.name.replace(/[^a-z0-9]/gi, "_")}`;
 
     if ("showSaveFilePicker" in window) {
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: `${suggestedName}.json`,
-      });
-      const writable = await handle.createWritable();
-      await writable.write(dataBlob);
-      await writable.close();
-      return;
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: `${suggestedName}.json`,
+        });
+        const writable = await handle.createWritable();
+        await writable.write(dataBlob);
+        await writable.close();
+      } catch (error) {
+        if ((error as DOMException).name !== "AbortError") {
+          console.error("Save failed:", error);
+        }
+      }
     } else {
+      const url = URL.createObjectURL(dataBlob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `${suggestedName}.json`;
@@ -142,18 +153,46 @@ const App = () => {
         try {
           const result = event.target?.result as string;
           const preset = JSON.parse(result);
-          if (preset.forms && Array.isArray(preset.forms)) {
-            setForms({
-              name: preset.name,
-              inputs: preset.forms,
-            });
-            const maxId = Math.max(
-              ...preset.forms.map((f: MidiFormData) => f.id),
-              0
-            );
-            setNextId(maxId + 1);
-          } else {
+          if (!preset.forms || !Array.isArray(preset.forms)) {
             alert("Invalid preset file");
+            return;
+          }
+
+          const validForms = preset.forms.filter(
+            (f: Record<string, unknown>) =>
+              typeof f.id === "number" &&
+              typeof f.midiChannel === "number" &&
+              typeof f.midiCC === "number" &&
+              typeof f.value === "number" &&
+              typeof f.label === "string" &&
+              typeof f.backgroundColor === "string"
+          ) as MidiCCFormData[];
+
+          if (validForms.length === 0) {
+            alert("No valid CC forms found in preset file");
+            return;
+          }
+
+          setForms({
+            name: typeof preset.name === "string" ? preset.name : "Untitled Preset",
+            inputs: validForms,
+          });
+
+          const maxId = Math.max(...validForms.map((f) => f.id), 0);
+          nextIdRef.current = maxId + 1;
+
+          if (
+            preset.pcForm &&
+            typeof preset.pcForm.midiChannel === "number" &&
+            typeof preset.pcForm.program === "number" &&
+            typeof preset.pcForm.label === "string" &&
+            typeof preset.pcForm.backgroundColor === "string"
+          ) {
+            setPcForm(preset.pcForm);
+          }
+
+          if (typeof preset.globalMidiChannel === "number") {
+            setGlobalMidiChannel(preset.globalMidiChannel);
           }
         } catch (error) {
           alert("Invalid preset file");
@@ -163,82 +202,9 @@ const App = () => {
     }
   };
 
-  const handleMIDIMessage = useCallback((event: any) => {
-    // v Only allow MIDI receive from selected device
-    if (event.target.name === deviceRef.current) {
-      const [status, data1, data2] = event.data;
-      const command = status >> 4;
-      const note = data1;
-      const velocity = data2;
-      if (command == 11) {
-        const currentForms = formsRef.current;
-        const matchingForm = currentForms.inputs.find((form) => {
-          if (form.midiChannel === status + 1 - 0xb0 && form.midiCC === note) {
-            return form;
-          }
-        });
-
-        if (matchingForm) {
-          setForms((prev) => ({
-            ...prev,
-            inputs: prev.inputs.map((form) =>
-              form.midiChannel === status + 1 - 0xb0 && form.midiCC === note
-                ? { ...form, value: velocity }
-                : form
-            ),
-          }));
-        }
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (navigator.requestMIDIAccess) {
-      navigator.requestMIDIAccess().then(
-        (midiAccess) => {
-          const outputs = Array.from(midiAccess.outputs.values());
-
-          if (outputs.length === 0) {
-            setIsMidiOutput(false);
-            return;
-          }
-
-          setIsMidiOutput(true);
-
-          const names = [
-            ...new Set(
-              outputs
-                .map((output) => output.name)
-                .filter(
-                  (manufacturer): manufacturer is string =>
-                    manufacturer !== null
-                )
-                .filter(
-                  (manufacturer): manufacturer is string => manufacturer !== ""
-                )
-            ),
-          ];
-          setDeviceList(names);
-
-          for (let input of midiAccess.inputs.values()) {
-            input.onmidimessage = handleMIDIMessage;
-          }
-        },
-        () => console.error("Failed to access MIDI devices.")
-      );
-    } else {
-      console.error("MIDI is not supported on this browser :(");
-    }
-  }, []);
-
   return (
     <main>
-      <Header
-        name={forms.name}
-        setName={(value: string) =>
-          setForms((prev) => ({ ...prev, name: value }))
-        }
-      />
+      <Title>Messenger</Title>
 
       {isMidiOutput ? (
         <Device device={device} deviceList={deviceList} setDevice={setDevice} />
@@ -247,44 +213,49 @@ const App = () => {
       )}
 
       <Navigation
-        handleAddInput={handleAddInput}
+        handleAddCCInput={handleAddCCInput}
         savePreset={savePreset}
         handleLoadPreset={handleLoadPreset}
         globalMidiChannel={globalMidiChannel}
         handleGlobalMidiChannelChange={handleGlobalMidiChannelChange}
       />
 
+      <Header
+        name={forms.name}
+        setName={(value: string) =>
+          setForms((prev) => ({ ...prev, name: value }))
+        }
+      />
+
       <FormsContainer>
         {forms.inputs.map((form) => (
-          <MidiForm
+          <MidiCCForm
             key={form.id}
-            onRemove={() => handleRemoveForm(form.id)}
+            id={form.id}
+            onRemove={handleRemoveCCForm}
+            updateCCFormField={updateCCFormField}
             midiChannel={form.midiChannel}
-            setMidiChannel={(value: string | number) =>
-              updateFormField(form.id, "midiChannel", value)
-            }
             midiCC={form.midiCC}
-            setMidiCC={(value: string | number) =>
-              updateFormField(form.id, "midiCC", value)
-            }
             value={form.value}
-            setValue={(value: string | number) =>
-              updateFormField(form.id, "value", value)
-            }
             label={form.label}
-            setLabel={(value: string | number) =>
-              updateFormField(form.id, "label", value)
-            }
             backgroundColor={form.backgroundColor}
-            setBackgroundColor={(value: string) =>
-              updateFormField(form.id, "backgroundColor", value)
-            }
-            device={device}
+            sendCC={sendCC}
           />
         ))}
+        <MidiPCForm
+          midiChannel={pcForm.midiChannel}
+          setMidiChannel={(ch) => setPcForm((prev) => ({ ...prev, midiChannel: ch }))}
+          program={pcForm.program}
+          setProgram={(p) => setPcForm((prev) => ({ ...prev, program: p }))}
+          label={pcForm.label}
+          setLabel={(l) => setPcForm((prev) => ({ ...prev, label: l }))}
+          backgroundColor={pcForm.backgroundColor}
+          setBackgroundColor={(c) => setPcForm((prev) => ({ ...prev, backgroundColor: c }))}
+          sendPC={sendPC}
+        />
       </FormsContainer>
       <footer>
-        <p style={{ marginTop: "100px", fontSize: "1.25rem" }}>
+        <p style={{ fontSize: "1.25rem" }}>
           𐙦 Midi Engineering
         </p>
       </footer>

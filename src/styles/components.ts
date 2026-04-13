@@ -13,8 +13,13 @@ export const NavBar = styled.nav`
   backdrop-filter: blur(20px);
   border: 1px solid var(--surface-glass-border);
   border-radius: ${theme.borderRadius.lg};
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: ${theme.shadows.nav};
+
+  @media (max-width: 560px) {
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+  }
 `;
 
 export const NavButton = styled(BaseButton)`
@@ -39,14 +44,13 @@ export const LoadButton = styled(NavButton)`
 export const GlobalChannelContainer = styled.div`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: ${theme.spacing.sm};
   margin: 0;
 `;
 
 // Form Components
 export const FormsContainer = styled.div`
-  // display: grid;
-  // grid-template-columns: repeat(auto-fit, minmax(280px, 1f2r));
   gap: ${theme.spacing.lg};
   margin: ${theme.spacing.xl} 0;
   display: flex;
@@ -63,11 +67,12 @@ export const MidiFormContainer = styled.div`
   padding: ${theme.spacing.lg};
   box-shadow: ${theme.shadows.glass};
   position: relative;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 
   &:hover {
     box-shadow: ${theme.shadows.glassHover};
-    border-color: rgba(0, 245, 255, 0.3);
+    border-color: ${theme.colors.primaryAlpha30};
   }
 
   @media (max-width: 700px) {
@@ -103,18 +108,22 @@ export const FormTitleDisplay = styled.h3`
   text-transform: lowercase;
   letter-spacing: 0.02em;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: ${theme.borderRadius.md};
   transition: ${theme.transitions.default};
-  background: rgba(255, 255, 255, 0.02);
+  background: ${theme.colors.surfaceSubtle};
   border: 1px solid transparent;
   box-sizing: border-box;
   text-align: center;
 
   &:hover {
-    background: rgba(0, 245, 255, 0.05);
+    background: ${theme.colors.primaryAlpha5};
     border-color: var(--surface-glass-border);
-    color: var(--primary-glow);
-    text-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+    color: var(--primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
   &.header {
@@ -131,15 +140,13 @@ export const FormTitleInput = styled.input`
   font-weight: ${theme.fonts.weights.normal};
   font-family: inherit;
   color: var(--text-primary);
-  background: rgba(0, 245, 255, 0.08);
-  border: 1px solid var(--primary-glow);
-  border-radius: 6px;
+  background: ${theme.colors.primaryAlpha8};
+  border: 1px solid var(--primary);
+  border-radius: ${theme.borderRadius.md};
   outline: none;
   text-transform: lowercase;
   letter-spacing: 0.02em;
   backdrop-filter: blur(10px);
-  box-shadow: 0 0 20px rgba(0, 245, 255, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   text-align: center;
 
   &.header {
@@ -152,30 +159,48 @@ export const RemoveButton = styled.button`
   height: 32px;
   min-width: 32px;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  font-weight: ${theme.fonts.weights.light};
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+  background: ${theme.colors.surfaceSubtle};
   border: 1px solid var(--surface-glass-border);
-  border-radius: 6px;
+  border-radius: ${theme.borderRadius.md};
   cursor: pointer;
   transition: ${theme.transitions.default};
   backdrop-filter: blur(10px);
-  text-transform: none;
-  letter-spacing: 0;
-  line-height: 1;
-  padding-top: 2px;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 1.5px;
+    background: var(--text-secondary);
+    border-radius: 1px;
+    transition: background ${theme.transitions.fast};
+  }
+
+  &::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  &::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
 
   &:hover {
-    color: #ff4757;
-    background: rgba(255, 71, 87, 0.1);
-    border-color: rgba(255, 71, 87, 0.3);
-    box-shadow: 0 4px 15px rgba(255, 71, 87, 0.2),
-      0 0 10px rgba(255, 71, 87, 0.1);
-    transform: translateY(-1px);
+    background: ${theme.colors.dangerAlpha10};
+    border-color: ${theme.colors.dangerAlpha30};
+
+    &::before,
+    &::after {
+      background: var(--danger);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
   &:active {
@@ -185,6 +210,8 @@ export const RemoveButton = styled.button`
 
 export const FormClickable = styled.div`
   min-height: 65px;
+  margin-top: ${theme.spacing.xl};
+  margin-bottom: ${theme.spacing.md};
 `;
 
 export const FormGroup = styled.div`
@@ -197,23 +224,61 @@ export const FormGroup = styled.div`
 export const ColorPicker = styled(FormGroup)`
   flex-direction: row;
   justify-content: space-between;
-  margin-top: 1.5rem;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 1.5rem;
   margin-bottom: 0;
+  position: relative;
+`;
 
-  input {
-    width: 45%;
-    height: 40px;
-    border: none;
-    outline: 4.5px solid #3e3e3e;
-    outline-offset: -6px;
-    border-radius: 8px;
-    cursor: pointer;
-    background: transparent;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+export const ColorSwatch = styled.button`
+  width: 45%;
+  height: 40px;
+  border: 1px solid var(--surface-glass-border);
+  border-radius: ${theme.borderRadius.md};
+  cursor: pointer;
+  transition: ${theme.transitions.default};
+  padding: 0;
 
-    &:hover {
-      box-shadow: inset 0px 0px 0px 1px var(--primary-glow);
-    }
+  &:hover {
+    border-color: var(--primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+`;
+
+export const ColorPopover = styled.div`
+  position: absolute;
+  bottom: calc(100% + ${theme.spacing.sm});
+  right: 0;
+  z-index: 10;
+  background: ${theme.colors.surfacePopover};
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--surface-glass-border);
+  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing.md};
+  box-shadow: ${theme.shadows.glass};
+
+  .react-colorful {
+    width: 200px;
+    height: 160px;
+  }
+
+  .react-colorful__saturation {
+    border-radius: ${theme.borderRadius.md} ${theme.borderRadius.md} 0 0;
+  }
+
+  .react-colorful__hue {
+    border-radius: 0 0 ${theme.borderRadius.md} ${theme.borderRadius.md};
+  }
+
+  .react-colorful__saturation-pointer,
+  .react-colorful__hue-pointer {
+    width: 16px;
+    height: 16px;
   }
 `;
 
@@ -231,17 +296,22 @@ export const FormLabel = styled.label`
     content: "";
     width: 4px;
     height: 4px;
-    background: var(--primary-glow);
+    background: var(--primary);
     border-radius: 50%;
-    box-shadow: 0 0 8px var(--primary-glow);
+    box-shadow: none;
   }
 `;
 
 export const Select = styled.select`
-  background: rgba(255, 255, 255, 0.03);
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: ${theme.colors.surfaceInput};
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23e4e4e4' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right ${theme.spacing.sm} center;
   border: 1px solid var(--surface-glass-border);
   border-radius: ${theme.borderRadius.md};
-  padding: 0.8rem ${theme.spacing.md};
+  padding: 0.8rem ${theme.spacing.lg} 0.8rem ${theme.spacing.md};
   color: var(--text-primary);
   font-family: inherit;
   font-size: ${theme.fonts.sizes.body};
@@ -250,21 +320,18 @@ export const Select = styled.select`
   cursor: pointer;
 
   &:hover {
-    border-color: var(--primary-glow);
-    background: rgba(0, 245, 255, 0.05);
-    box-shadow: 0 0 15px rgba(0, 245, 255, 0.1);
+    border-color: var(--primary);
+    background-color: ${theme.colors.primaryAlpha5};
   }
 
   &:focus {
     outline: none;
-    border-color: var(--primary-glow);
-    background: rgba(0, 245, 255, 0.08);
-    box-shadow: 0 0 20px rgba(0, 245, 255, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: var(--primary);
+    background-color: ${theme.colors.primaryAlpha8};
   }
 
   option {
-    background: #1a1a2e;
+    background: ${theme.colors.surfaceDark};
     color: var(--text-primary);
     padding: ${theme.spacing.xs};
   }
@@ -315,14 +382,6 @@ export const RangeInput = styled.input`
   }
 `;
 
-export const SendButton = styled(BaseButton)`
-  width: 100%;
-  margin-top: ${theme.spacing.xs};
-  font-weight: ${theme.fonts.weights.medium};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
 export const GlobalChannelLabel = styled(FormLabel)`
   margin: 0;
   font-size: ${theme.fonts.sizes.body};
@@ -336,29 +395,16 @@ export const GlobalChannelLabel = styled(FormLabel)`
 export const GlobalChannelSelect = styled(Select)`
   min-width: 80px;
   margin: 0;
-  background: #fff;
-  color: #000;
+`;
 
-  &:focus {
-    background: #fff;
-    color: #000;
-  }
-
-  &:hover {
-    outline: 4px solid #8e8e8e78;
-    background: linear-gradient(
-      135deg,
-      var(--accent-glow),
-      var(--primary-glow)
-    );
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 245, 255, 0.3),
-      0 0 20px rgba(0, 245, 255, 0.2);
-    color: #000000;
-  }
-
-  outline: 4px solid #24242480;
-  outline-offset: -2px;
+export const SendButton = styled(BaseButton)`
+  width: 50%;
+  min-width: 100px;
+  font-weight: ${theme.fonts.weights.medium};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: ${theme.spacing.md};
+  align-self: center;
 `;
 
 export const Input = styled.input`
