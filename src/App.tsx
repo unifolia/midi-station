@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import MidiCCForm from "./lib/MidiCCForm";
 import MidiPCForm from "./lib/MidiPCForm";
 import Header from "./lib/Header";
@@ -7,7 +7,8 @@ import { Title } from "./styles/GlobalStyles";
 import Navigation from "./lib/NavBar";
 import Device from "./lib/Device";
 import useMIDI from "./hooks/useMIDI";
-import type { MidiCCFormData } from "./types";
+import useDragReorder from "./hooks/useDragReorder";
+import type { MidiCCFormData, MidiPCFormData } from "./types";
 
 const DEFAULT_BG = "#909090";
 
@@ -30,12 +31,18 @@ const App = () => {
     null
   );
 
-  const [pcForm, setPcForm] = useState({
-    midiChannel: 1,
-    program: 0,
-    label: "Program Change",
-    backgroundColor: DEFAULT_BG,
-  });
+  const [pcForms, setPcForms] = useState<MidiPCFormData[]>([
+    {
+      id: -1,
+      midiChannel: 1,
+      program: 0,
+      label: "Program Change",
+      backgroundColor: DEFAULT_BG,
+    },
+  ]);
+  const nextPcIdRef = useRef(-2);
+
+  const [formOrder, setFormOrder] = useState<number[]>([1, -1]);
 
   const onCC = useCallback((channel: number, cc: number, value: number) => {
     setForms((prev) => ({
@@ -51,6 +58,40 @@ const App = () => {
   const { deviceList, device, setDevice, isMidiOutput, sendCC, sendPC } =
     useMIDI({ onCC });
 
+  const allItems = useMemo(
+    () => formOrder.map((id) => ({ id })),
+    [formOrder]
+  );
+
+  const handleReorder = useCallback((reorderedIds: number[]) => {
+    setFormOrder(reorderedIds);
+    setForms((prev) => ({
+      ...prev,
+      inputs: reorderedIds
+        .filter((id) => prev.inputs.some((f) => f.id === id))
+        .map((id) => prev.inputs.find((f) => f.id === id)!),
+    }));
+    setPcForms((prev) =>
+      reorderedIds
+        .filter((id) => prev.some((f) => f.id === id))
+        .map((id) => prev.find((f) => f.id === id)!)
+    );
+  }, []);
+
+  const { orderedIds, draggedId, handlePointerDown, registerRef, containerRef } =
+    useDragReorder(allItems, handleReorder);
+
+  const allFormsById = useMemo(() => {
+    const map = new Map<
+      number,
+      | { type: "cc"; data: MidiCCFormData }
+      | { type: "pc"; data: MidiPCFormData }
+    >();
+    forms.inputs.forEach((f) => map.set(f.id, { type: "cc", data: f }));
+    pcForms.forEach((f) => map.set(f.id, { type: "pc", data: f }));
+    return map;
+  }, [forms.inputs, pcForms]);
+
   const handleGlobalMidiChannelChange = (newGlobalChannel: number) => {
     setGlobalMidiChannel(newGlobalChannel);
     if (newGlobalChannel !== null) {
@@ -61,7 +102,9 @@ const App = () => {
           midiChannel: newGlobalChannel,
         })),
       }));
-      setPcForm((prev) => ({ ...prev, midiChannel: newGlobalChannel }));
+      setPcForms((prev) =>
+        prev.map((pc) => ({ ...pc, midiChannel: newGlobalChannel }))
+      );
     }
   };
 
@@ -84,6 +127,7 @@ const App = () => {
           },
         ],
       }));
+      setFormOrder((prev) => [...prev, id]);
     }
   };
 
@@ -92,6 +136,29 @@ const App = () => {
       ...prev,
       inputs: prev.inputs.filter((form) => form.id !== id),
     }));
+    setFormOrder((prev) => prev.filter((fid) => fid !== id));
+  }, []);
+
+  const handleAddPCInput = () => {
+    const id = nextPcIdRef.current--;
+    const lastColor =
+      pcForms[pcForms.length - 1]?.backgroundColor || DEFAULT_BG;
+    setPcForms((prev) => [
+      ...prev,
+      {
+        id,
+        midiChannel: globalMidiChannel || 1,
+        program: 0,
+        label: "Program Change",
+        backgroundColor: lastColor,
+      },
+    ]);
+    setFormOrder((prev) => [...prev, id]);
+  };
+
+  const handleRemovePCForm = useCallback((id: number) => {
+    setPcForms((prev) => prev.filter((pc) => pc.id !== id));
+    setFormOrder((prev) => prev.filter((fid) => fid !== id));
   }, []);
 
   const updateCCFormField = useCallback(
@@ -106,12 +173,24 @@ const App = () => {
     []
   );
 
+  const updatePCFormField = useCallback(
+    (id: number, field: keyof MidiPCFormData, value: string | number) => {
+      setPcForms((prev) =>
+        prev.map((form) =>
+          form.id === id ? { ...form, [field]: value } : form
+        )
+      );
+    },
+    []
+  );
+
   const savePreset = async () => {
     const preset = {
       name: forms.name,
       timestamp: new Date().toISOString(),
       forms: forms.inputs,
-      pcForm,
+      pcForms,
+      formOrder,
       globalMidiChannel,
     };
 
@@ -181,14 +260,51 @@ const App = () => {
           const maxId = Math.max(...validForms.map((f) => f.id), 0);
           nextIdRef.current = maxId + 1;
 
-          if (
+          let loadedPcForms: MidiPCFormData[] = [];
+          if (Array.isArray(preset.pcForms)) {
+            loadedPcForms = preset.pcForms.filter(
+              (f: Record<string, unknown>) =>
+                typeof f.id === "number" &&
+                typeof f.midiChannel === "number" &&
+                typeof f.program === "number" &&
+                typeof f.label === "string" &&
+                typeof f.backgroundColor === "string"
+            ) as MidiPCFormData[];
+            if (loadedPcForms.length > 0) {
+              setPcForms(loadedPcForms);
+              const minPcId = Math.min(...loadedPcForms.map((f) => f.id), 0);
+              nextPcIdRef.current = minPcId - 1;
+            }
+          } else if (
             preset.pcForm &&
             typeof preset.pcForm.midiChannel === "number" &&
             typeof preset.pcForm.program === "number" &&
             typeof preset.pcForm.label === "string" &&
             typeof preset.pcForm.backgroundColor === "string"
           ) {
-            setPcForm(preset.pcForm);
+            loadedPcForms = [{ id: -1, ...preset.pcForm }];
+            setPcForms(loadedPcForms);
+            nextPcIdRef.current = -2;
+          }
+
+          const allLoadedIds = new Set([
+            ...validForms.map((f) => f.id),
+            ...loadedPcForms.map((f) => f.id),
+          ]);
+
+          if (Array.isArray(preset.formOrder)) {
+            // Filter out stale IDs and append any missing ones
+            const validOrder = preset.formOrder.filter((id: number) =>
+              allLoadedIds.has(id)
+            );
+            const inOrder = new Set(validOrder);
+            for (const id of allLoadedIds) {
+              if (!inOrder.has(id)) validOrder.push(id);
+            }
+            setFormOrder(validOrder);
+          } else {
+            // Backward compat: CC forms first, then PC forms
+            setFormOrder([...allLoadedIds]);
           }
 
           if (typeof preset.globalMidiChannel === "number") {
@@ -214,6 +330,7 @@ const App = () => {
 
       <Navigation
         handleAddCCInput={handleAddCCInput}
+        handleAddPCInput={handleAddPCInput}
         savePreset={savePreset}
         handleLoadPreset={handleLoadPreset}
         globalMidiChannel={globalMidiChannel}
@@ -227,32 +344,48 @@ const App = () => {
         }
       />
 
-      <FormsContainer>
-        {forms.inputs.map((form) => (
-          <MidiCCForm
-            key={form.id}
-            id={form.id}
-            onRemove={handleRemoveCCForm}
-            updateCCFormField={updateCCFormField}
-            midiChannel={form.midiChannel}
-            midiCC={form.midiCC}
-            value={form.value}
-            label={form.label}
-            backgroundColor={form.backgroundColor}
-            sendCC={sendCC}
-          />
-        ))}
-        <MidiPCForm
-          midiChannel={pcForm.midiChannel}
-          setMidiChannel={(ch) => setPcForm((prev) => ({ ...prev, midiChannel: ch }))}
-          program={pcForm.program}
-          setProgram={(p) => setPcForm((prev) => ({ ...prev, program: p }))}
-          label={pcForm.label}
-          setLabel={(l) => setPcForm((prev) => ({ ...prev, label: l }))}
-          backgroundColor={pcForm.backgroundColor}
-          setBackgroundColor={(c) => setPcForm((prev) => ({ ...prev, backgroundColor: c }))}
-          sendPC={sendPC}
-        />
+      <FormsContainer ref={containerRef}>
+        {orderedIds.map((id) => {
+          const item = allFormsById.get(id);
+          if (!item) return null;
+          if (item.type === "cc") {
+            const form = item.data;
+            return (
+              <MidiCCForm
+                key={form.id}
+                id={form.id}
+                onRemove={handleRemoveCCForm}
+                updateCCFormField={updateCCFormField}
+                midiChannel={form.midiChannel}
+                midiCC={form.midiCC}
+                value={form.value}
+                label={form.label}
+                backgroundColor={form.backgroundColor}
+                sendCC={sendCC}
+                dragRef={registerRef(form.id)}
+                onDragPointerDown={handlePointerDown}
+                isDragging={draggedId === form.id}
+              />
+            );
+          }
+          const pc = item.data;
+          return (
+            <MidiPCForm
+              key={pc.id}
+              id={pc.id}
+              onRemove={handleRemovePCForm}
+              updatePCFormField={updatePCFormField}
+              midiChannel={pc.midiChannel}
+              program={pc.program}
+              label={pc.label}
+              backgroundColor={pc.backgroundColor}
+              sendPC={sendPC}
+              dragRef={registerRef(pc.id)}
+              onDragPointerDown={handlePointerDown}
+              isDragging={draggedId === pc.id}
+            />
+          );
+        })}
       </FormsContainer>
       <footer>
         <p style={{ fontSize: "1.25rem" }}>

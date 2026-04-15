@@ -97,36 +97,26 @@ export default function useMIDI({ onCC }: UseMIDIOptions = {}): UseMIDIReturn {
     );
   }, [updateDeviceList, attachInputListeners]);
 
+  const getOutput = useCallback((): MIDIOutput | undefined => {
+    const midiAccess = midiAccessRef.current;
+    if (!midiAccess) return undefined;
+    return Array.from(midiAccess.outputs.values()).find(
+      (o) => o.name === deviceRef.current
+    );
+  }, []);
+
   const sendCC = useCallback(
     (channel: number, cc: number, value: number) => {
-      const midiAccess = midiAccessRef.current;
-      if (!midiAccess) return;
-
-      const outputs = Array.from(midiAccess.outputs.values());
-      const output = outputs.find((o) => o.name === deviceRef.current);
-
-      if (output) {
-        const message = [0xb0 + channel - 1, cc, value];
-        output.send(message);
-      }
+      getOutput()?.send([0xb0 + channel - 1, cc, value]);
     },
-    []
+    [getOutput]
   );
 
   const sendPC = useCallback(
     (channel: number, program: number) => {
-      const midiAccess = midiAccessRef.current;
-      if (!midiAccess) return;
-
-      const outputs = Array.from(midiAccess.outputs.values());
-      const output = outputs.find((o) => o.name === deviceRef.current);
-
-      if (output) {
-        const message = [0xc0 + channel - 1, program];
-        output.send(message);
-      }
+      getOutput()?.send([0xc0 + channel - 1, program]);
     },
-    []
+    [getOutput]
   );
 
   return { deviceList, device, setDevice, isMidiOutput, sendCC, sendPC };

@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { HexColorPicker } from "react-colorful";
 import labelHandler from "../util/labelHandler";
+import useColorPicker from "../hooks/useColorPicker";
 import type { MidiCCFormData } from "../types";
 import {
   MidiFormContainer,
@@ -32,6 +33,9 @@ interface MidiCCFormProps {
   label: string;
   backgroundColor: string;
   sendCC: (channel: number, cc: number, value: number) => void;
+  dragRef?: (el: HTMLElement | null) => void;
+  onDragPointerDown?: (e: React.PointerEvent, id: number) => void;
+  isDragging?: boolean;
 }
 
 const MidiCCForm = memo(
@@ -45,23 +49,12 @@ const MidiCCForm = memo(
     label,
     backgroundColor,
     sendCC,
+    dragRef,
+    onDragPointerDown,
+    isDragging,
   }: MidiCCFormProps) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [isPickerOpen, setIsPickerOpen] = useState(false);
-    const pickerRef = useRef<HTMLDivElement>(null);
-
-    const closePicker = useCallback((e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        setIsPickerOpen(false);
-      }
-    }, []);
-
-    useEffect(() => {
-      if (isPickerOpen) {
-        document.addEventListener("mousedown", closePicker);
-        return () => document.removeEventListener("mousedown", closePicker);
-      }
-    }, [isPickerOpen, closePicker]);
+    const { isPickerOpen, pickerRef, togglePicker } = useColorPicker();
 
     const {
       handleLabelClick,
@@ -81,9 +74,23 @@ const MidiCCForm = memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sendCC, midiChannel, midiCC]);
 
+    const handlePointerDown = useCallback(
+      (e: React.PointerEvent) => {
+        onDragPointerDown?.(e, id);
+      },
+      [onDragPointerDown, id]
+    );
+
     return (
       <MidiFormContainer
-        style={{ background: backgroundColor + "55" }}
+        ref={dragRef}
+        onPointerDown={handlePointerDown}
+        style={{
+          background: backgroundColor + "55",
+          ...(isDragging && { opacity: 0 }),
+          cursor: "grab",
+          touchAction: "none",
+        }}
         role="group"
         aria-label={label}
       >
@@ -185,7 +192,7 @@ const MidiCCForm = memo(
           <ColorSwatch
             type="button"
             style={{ background: backgroundColor }}
-            onClick={() => setIsPickerOpen(!isPickerOpen)}
+            onClick={togglePicker}
             aria-label="Choose background color"
           />
           {isPickerOpen && (

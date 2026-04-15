@@ -11,6 +11,7 @@ import { Label } from "../styles/GlobalStyles";
 
 interface NavigationProps {
   handleAddCCInput: () => void;
+  handleAddPCInput: () => void;
   savePreset: () => void;
   handleLoadPreset: (event: React.ChangeEvent<HTMLInputElement>) => void;
   globalMidiChannel: number | null;
@@ -19,6 +20,7 @@ interface NavigationProps {
 
 const Navigation = ({
   handleAddCCInput,
+  handleAddPCInput,
   savePreset,
   handleLoadPreset,
   globalMidiChannel,
@@ -26,7 +28,8 @@ const Navigation = ({
 }: NavigationProps) => {
   return (
     <NavBar>
-      <NavButton onClick={handleAddCCInput}>Add Input</NavButton>
+      <NavButton onClick={handleAddCCInput}>Add CC Input</NavButton>
+      <NavButton onClick={handleAddPCInput}>Add PC Input</NavButton>
       <NavButton onClick={savePreset}>Save Preset</NavButton>
       <LoadButton>
         Upload Preset
