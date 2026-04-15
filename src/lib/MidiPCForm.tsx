@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, memo } from "react";
+import { useState, useCallback, useRef, memo } from "react";
 import { HexColorPicker } from "react-colorful";
 import {
   MidiFormContainer,
@@ -6,6 +6,7 @@ import {
   FormHeaderContent,
   FormTitleDisplay,
   FormTitleInput,
+  RemoveButton,
   FormGroup,
   FormLabel,
   Select,
@@ -14,59 +15,69 @@ import {
   ColorSwatch,
   ColorPopover,
 } from "../styles/components";
-import labelHandler from "../util/labelHandler";
+import {
+  handleLabelClick,
+  handleLabelChange,
+  handleLabelBlur,
+  handleLabelKeyDown,
+} from "../util/labelHandler";
+import useColorPicker from "../hooks/useColorPicker";
+import type { MidiPCFormData } from "../types";
 
 interface MidiPCFormProps {
+  id: number;
+  onRemove: (id: number) => void;
+  updatePCFormField: (
+    id: number,
+    field: keyof MidiPCFormData,
+    value: string | number
+  ) => void;
   midiChannel: number;
-  setMidiChannel: (channel: number) => void;
   program: number;
-  setProgram: (program: number) => void;
   label: string;
-  setLabel: (label: string) => void;
   backgroundColor: string;
-  setBackgroundColor: (color: string) => void;
   sendPC: (channel: number, program: number) => void;
+  dragRef?: (el: HTMLElement | null) => void;
+  onDragPointerDown?: (e: React.PointerEvent, id: number) => void;
+  isDragging?: boolean;
 }
 
 const MidiPCForm = memo(
   ({
+    id,
+    onRemove,
+    updatePCFormField,
     midiChannel,
-    setMidiChannel,
     program,
-    setProgram,
     label,
-    setLabel,
     backgroundColor,
-    setBackgroundColor,
     sendPC,
+    dragRef,
+    onDragPointerDown,
+    isDragging,
   }: MidiPCFormProps) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [isPickerOpen, setIsPickerOpen] = useState(false);
-    const pickerRef = useRef<HTMLDivElement>(null);
+    const [sent, setSent] = useState(false);
+    const sentTimer = useRef<ReturnType<typeof setTimeout>>();
+    const { isPickerOpen, pickerRef, togglePicker } = useColorPicker();
 
-    const closePicker = useCallback((e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        setIsPickerOpen(false);
-      }
-    }, []);
-
-    useEffect(() => {
-      if (isPickerOpen) {
-        document.addEventListener("mousedown", closePicker);
-        return () => document.removeEventListener("mousedown", closePicker);
-      }
-    }, [isPickerOpen, closePicker]);
-
-    const {
-      handleLabelClick,
-      handleLabelChange,
-      handleLabelBlur,
-      handleLabelKeyDown,
-    } = labelHandler;
+    const handlePointerDown = useCallback(
+      (e: React.PointerEvent) => {
+        onDragPointerDown?.(e, id);
+      },
+      [onDragPointerDown, id]
+    );
 
     return (
       <MidiFormContainer
-        style={{ background: backgroundColor + "55" }}
+        ref={dragRef}
+        onPointerDown={handlePointerDown}
+        style={{
+          background: backgroundColor + "55",
+          ...(isDragging && { opacity: 0 }),
+          cursor: "grab",
+          touchAction: "none",
+        }}
         role="group"
         aria-label={label}
       >
@@ -77,8 +88,19 @@ const MidiPCForm = memo(
                 type="text"
                 value={label}
                 aria-label="Control block name"
-                onChange={(e) => handleLabelChange(setLabel, e)}
-                onBlur={() => handleLabelBlur(setIsEditing, label, setLabel)}
+                onChange={(e) =>
+                  handleLabelChange(
+                    (v) => updatePCFormField(id, "label", v),
+                    e
+                  )
+                }
+                onBlur={() =>
+                  handleLabelBlur(
+                    setIsEditing,
+                    label,
+                    (v) => updatePCFormField(id, "label", v)
+                  )
+                }
                 onKeyDown={(e) => handleLabelKeyDown(setIsEditing, e)}
                 autoFocus
               />
@@ -99,14 +121,20 @@ const MidiPCForm = memo(
               </FormTitleDisplay>
             )}
           </FormHeaderContent>
+          <RemoveButton
+            onClick={() => onRemove(id)}
+            aria-label={`Remove ${label}`}
+          />
         </FormHeader>
 
         <FormGroup>
-          <FormLabel htmlFor="pc-midi-channel">MIDI Channel:</FormLabel>
+          <FormLabel htmlFor={`pc-midi-channel-${id}`}>MIDI Channel:</FormLabel>
           <Select
-            id="pc-midi-channel"
+            id={`pc-midi-channel-${id}`}
             value={midiChannel}
-            onChange={(e) => setMidiChannel(Number(e.target.value))}
+            onChange={(e) =>
+              updatePCFormField(id, "midiChannel", Number(e.target.value))
+            }
           >
             {Array.from({ length: 16 }, (_, i) => i + 1).map((channel) => (
               <option key={channel} value={channel}>
@@ -117,11 +145,13 @@ const MidiPCForm = memo(
         </FormGroup>
 
         <FormGroup>
-          <FormLabel htmlFor="pc-program">Program:</FormLabel>
+          <FormLabel htmlFor={`pc-program-${id}`}>Program:</FormLabel>
           <Select
-            id="pc-program"
+            id={`pc-program-${id}`}
             value={program}
-            onChange={(e) => setProgram(Number(e.target.value))}
+            onChange={(e) =>
+              updatePCFormField(id, "program", Number(e.target.value))
+            }
           >
             {Array.from({ length: 128 }, (_, i) => i).map((p) => (
               <option key={p} value={p}>
@@ -133,7 +163,13 @@ const MidiPCForm = memo(
 
         <SendButton
           type="button"
-          onClick={() => sendPC(midiChannel, program)}
+          className={sent ? "sent" : ""}
+          onClick={() => {
+            sendPC(midiChannel, program);
+            clearTimeout(sentTimer.current);
+            setSent(true);
+            sentTimer.current = setTimeout(() => setSent(false), 400);
+          }}
         >
           Send
         </SendButton>
@@ -143,14 +179,16 @@ const MidiPCForm = memo(
           <ColorSwatch
             type="button"
             style={{ background: backgroundColor }}
-            onClick={() => setIsPickerOpen(!isPickerOpen)}
+            onClick={togglePicker}
             aria-label="Choose background color"
           />
           {isPickerOpen && (
             <ColorPopover>
               <HexColorPicker
                 color={backgroundColor}
-                onChange={setBackgroundColor}
+                onChange={(color) =>
+                  updatePCFormField(id, "backgroundColor", color)
+                }
               />
             </ColorPopover>
           )}

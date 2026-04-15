@@ -51,14 +51,21 @@ export const GlobalChannelContainer = styled.div`
 
 // Form Components
 export const FormsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: ${theme.spacing.lg};
   margin: ${theme.spacing.xl} 0;
-  display: flex;
-  flex-wrap: wrap;
+
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: ${theme.breakpoints.big}) {
+    grid-template-columns: repeat(4, 1fr);
+  }
 `;
 
 export const MidiFormContainer = styled.div`
-  width: calc(33% - 0.875rem);
   box-sizing: border-box;
   background: var(--surface-glass);
   backdrop-filter: blur(20px);
@@ -74,20 +81,12 @@ export const MidiFormContainer = styled.div`
     box-shadow: ${theme.shadows.glassHover};
     border-color: ${theme.colors.primaryAlpha30};
   }
-
-  @media (max-width: 700px) {
-    width: 100%;
-  }
-
-  @media (min-width: ${theme.breakpoints.big}) {
-    width: calc(25% - 18px);
-  }
 `;
 
 export const FormHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: ${theme.spacing.lg};
   padding-bottom: ${theme.spacing.md};
   border-bottom: 1px solid var(--surface-glass-border);
@@ -96,7 +95,6 @@ export const FormHeader = styled.div`
 export const FormHeaderContent = styled.div`
   flex: 1;
   margin-right: ${theme.spacing.md};
-  min-height: 60px;
 `;
 
 export const FormTitleDisplay = styled.h3`
@@ -226,7 +224,7 @@ export const ColorPicker = styled(FormGroup)`
   justify-content: space-between;
   align-items: center;
   margin-top: auto;
-  padding-top: 1.5rem;
+  padding-top: ${theme.spacing.lg};
   margin-bottom: 0;
   position: relative;
 `;
@@ -405,6 +403,43 @@ export const SendButton = styled(BaseButton)`
   letter-spacing: 0.05em;
   margin-top: ${theme.spacing.md};
   align-self: center;
+
+  &.sent {
+    color: var(--primary);
+    border-color: var(--primary);
+    animation: send-pulse 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes send-pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 ${theme.colors.primaryAlpha30};
+    }
+    40% {
+      transform: scale(1.06);
+      box-shadow: 0 0 0 8px transparent;
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+`;
+
+export const DeviceContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.spacing.xs};
+  margin-bottom: ${theme.spacing.md};
+`;
+
+export const DeviceHeading = styled.h3`
+  margin: 0;
+`;
+
+export const FooterText = styled.p`
+  font-size: 1.25rem;
 `;
 
 export const Input = styled.input`

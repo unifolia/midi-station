@@ -6,3 +6,11 @@ export interface MidiCCFormData {
   label: string;
   backgroundColor: string;
 }
+
+export interface MidiPCFormData {
+  id: number;
+  midiChannel: number;
+  program: number;
+  label: string;
+  backgroundColor: string;
+}
