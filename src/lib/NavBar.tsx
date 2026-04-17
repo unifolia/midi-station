@@ -6,6 +6,7 @@ import {
   GlobalChannelContainer,
   GlobalChannelLabel,
   GlobalChannelSelect,
+  LayoutButton,
 } from "../styles/components";
 import { Label } from "../styles/GlobalStyles";
 import type { Layout } from "../types";
@@ -67,13 +68,13 @@ const Navigation = ({
           ))}
         </GlobalChannelSelect>
       </GlobalChannelContainer>
-      <NavButton
+      <LayoutButton
         onClick={onToggleLayout}
         aria-pressed={layout === "row"}
         aria-label={`Layout: ${layout}. Click to toggle.`}
       >
-        {layout === "tile" ? "Tile" : "Row"}
-      </NavButton>
+        {layout === "tile" ? "Tile" : "Strip"}
+      </LayoutButton>
     </NavBar>
   );
 };

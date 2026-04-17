@@ -14,6 +14,7 @@ import {
   ColorPicker,
   ColorSwatch,
   ColorPopover,
+  HexInput,
   SelectRow,
 } from "../styles/components";
 import {
@@ -191,6 +192,14 @@ const MidiPCForm = memo(
                 onChange={(color) =>
                   updatePCFormField(id, "backgroundColor", color)
                 }
+              />
+              <HexInput
+                color={backgroundColor}
+                onChange={(color) =>
+                  updatePCFormField(id, "backgroundColor", color)
+                }
+                prefixed
+                aria-label="Background hex code"
               />
             </ColorPopover>
           )}

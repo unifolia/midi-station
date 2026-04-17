@@ -81,6 +81,7 @@ export const theme = {
     nav: "0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
   },
   breakpoints: {
+    narrow: "700px",
     rowStack: "1100px",
     big: "1440px",
     huge: "1900px",

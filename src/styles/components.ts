@@ -1,14 +1,15 @@
 import styled, { css } from "styled-components";
+import { HexColorInput } from "react-colorful";
 import { theme } from "./theme";
 import { BaseButton } from "./GlobalStyles";
 import type { Layout } from "../types";
 
 // Styling mixins for layout-dependent breakpoints. A card is "narrow-stacked"
 // when it's rendering vertically in a single column: either tile mode at
-// ≤700px, or row mode at ≤rowStack. "Row-wide" means row mode at >rowStack.
+// ≤narrow, or row mode at ≤rowStack. "Row-wide" means row mode at >rowStack.
 const rowWide = (styles: ReturnType<typeof css>) => css`
   [data-layout="row"] & {
-    @media (min-width: 1101px) {
+    @media (min-width: calc(${theme.breakpoints.rowStack} + 1px)) {
       ${styles}
     }
   }
@@ -16,14 +17,14 @@ const rowWide = (styles: ReturnType<typeof css>) => css`
 
 const rowWideSelf = (styles: ReturnType<typeof css>) => css`
   &[data-layout="row"] {
-    @media (min-width: 1101px) {
+    @media (min-width: calc(${theme.breakpoints.rowStack} + 1px)) {
       ${styles}
     }
   }
 `;
 
 const narrowStacked = (styles: ReturnType<typeof css>) => css`
-  @media (max-width: 700px) {
+  @media (max-width: ${theme.breakpoints.narrow}) {
     ${styles}
   }
 
@@ -35,7 +36,7 @@ const narrowStacked = (styles: ReturnType<typeof css>) => css`
 `;
 
 const narrowStackedSelf = (styles: ReturnType<typeof css>) => css`
-  @media (max-width: 700px) {
+  @media (max-width: ${theme.breakpoints.narrow}) {
     ${styles}
   }
 
@@ -84,6 +85,12 @@ export const NavBar = styled.nav`
   box-shadow: ${theme.shadows.nav};
 
   @media (max-width: ${theme.breakpoints.rowStack}) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: ${theme.breakpoints.narrow}) {
+    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: stretch;
@@ -117,6 +124,12 @@ export const GlobalChannelContainer = styled.div`
   margin: 0;
 `;
 
+export const LayoutButton = styled(NavButton)`
+  @media (max-width: ${theme.breakpoints.narrow}) {
+    display: none;
+  }
+`;
+
 // Form Components
 export const FormsContainer = styled.div<{ $layout?: Layout }>`
   ${({ $layout }) =>
@@ -145,7 +158,7 @@ export const FormsContainer = styled.div<{ $layout?: Layout }>`
           grid-template-columns: repeat(3, 1fr);
           gap: ${theme.spacing.lg};
 
-          @media (max-width: 700px) {
+          @media (max-width: ${theme.breakpoints.narrow}) {
             grid-template-columns: 1fr;
           }
 
@@ -387,13 +400,13 @@ export const FormGroup = styled.div`
   `)}
 
   [data-layout="row"] &:has(input[type="range"]) {
-    @media (min-width: 1101px) {
+    @media (min-width: calc(${theme.breakpoints.rowStack} + 1px)) {
       min-width: 150px;
     }
   }
 
   [data-layout="row"] &:has(select) {
-    @media (min-width: 1101px) {
+    @media (min-width: calc(${theme.breakpoints.rowStack} + 1px)) {
       ${inlineSelectWide}
     }
 
@@ -403,7 +416,7 @@ export const FormGroup = styled.div`
   }
 
   &:has(select) {
-    @media (max-width: 700px) {
+    @media (max-width: ${theme.breakpoints.narrow}) {
       ${inlineSelectNarrow}
     }
   }
@@ -464,7 +477,10 @@ export const ColorPopover = styled.div`
   bottom: calc(100% + ${theme.spacing.sm});
   right: 0;
   z-index: 10;
-  background: ${theme.colors.surfacePopover};
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing.sm};
+  background: ${theme.colors.background};
   backdrop-filter: blur(20px);
   border: 1px solid var(--surface-glass-border);
   border-radius: ${theme.borderRadius.lg};
@@ -488,6 +504,32 @@ export const ColorPopover = styled.div`
   .react-colorful__hue-pointer {
     width: 16px;
     height: 16px;
+  }
+`;
+
+export const HexInput = styled(HexColorInput)`
+  width: 200px;
+  box-sizing: border-box;
+  padding: ${theme.spacing.xs} ${theme.spacing.sm};
+  font-family: inherit;
+  font-size: ${theme.fonts.sizes.label};
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: ${theme.colors.surfaceInput};
+  border: 1px solid var(--surface-glass-border);
+  border-radius: ${theme.borderRadius.md};
+  outline: none;
+  transition: ${theme.transitions.default};
+
+  &:hover {
+    border-color: var(--primary);
+  }
+
+  &:focus {
+    border-color: var(--primary);
+    background: ${theme.colors.primaryAlpha8};
   }
 `;
 

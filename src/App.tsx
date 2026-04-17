@@ -116,11 +116,18 @@ const App = () => {
     }
   };
 
+  const getLastBackgroundColor = () => {
+    for (let i = formOrder.length - 1; i >= 0; i--) {
+      const entry = allFormsById.get(formOrder[i]);
+      if (entry) return entry.data.backgroundColor;
+    }
+    return DEFAULT_BG;
+  };
+
   const handleAddCCInput = () => {
     if (forms.inputs.length < 50) {
       const id = nextIdRef.current++;
-      const lastColor =
-        forms.inputs[forms.inputs.length - 1]?.backgroundColor || DEFAULT_BG;
+      const lastColor = getLastBackgroundColor();
       setForms((prev) => ({
         ...prev,
         inputs: [
@@ -149,8 +156,7 @@ const App = () => {
 
   const handleAddPCInput = () => {
     const id = nextPcIdRef.current--;
-    const lastColor =
-      pcForms[pcForms.length - 1]?.backgroundColor || DEFAULT_BG;
+    const lastColor = getLastBackgroundColor();
     setPcForms((prev) => [
       ...prev,
       {

@@ -22,6 +22,7 @@ import {
   ColorPicker,
   ColorSwatch,
   ColorPopover,
+  HexInput,
   SelectRow,
 } from "../styles/components";
 
@@ -202,6 +203,14 @@ const MidiCCForm = memo(
                 onChange={(color) =>
                   updateCCFormField(id, "backgroundColor", color)
                 }
+              />
+              <HexInput
+                color={backgroundColor}
+                onChange={(color) =>
+                  updateCCFormField(id, "backgroundColor", color)
+                }
+                prefixed
+                aria-label="Background hex code"
               />
             </ColorPopover>
           )}
